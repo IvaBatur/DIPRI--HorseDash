@@ -28,7 +28,6 @@ public class KonjKretanje : MonoBehaviour
     private float trenutnaBrzina;
     private float vrijemeSkoka = -10f;
     private float zadnjiDodirTla = -10f;
-    private float zadnjaKazna = -10f;
 
     void Start()
     {
@@ -82,13 +81,6 @@ public class KonjKretanje : MonoBehaviour
                 {
                     naprijed = 0f;
                     rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
-
-                    Prepreka p = hit.collider.GetComponentInParent<Prepreka>();
-                    if (p != null && Time.time - zadnjaKazna > 2f && UpraviteljIgre.instanca != null)
-                    {
-                        zadnjaKazna = Time.time;
-                        UpraviteljIgre.instanca.OduzmiVrijeme(p.kaznaSekundi);
-                    }
                 }
             }
         }
