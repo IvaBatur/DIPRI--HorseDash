@@ -98,6 +98,16 @@ public class KonjKretanje : MonoBehaviour
         transform.Rotate(0, okret * brzinaOkretanja * Time.fixedDeltaTime, 0);
 
         Vector3 kretanje = transform.forward * naprijed * trenutnaBrzina * Time.fixedDeltaTime;
+
+        RaycastHit zidHit;
+        if (kretanje.sqrMagnitude > 0f && rb.SweepTest(kretanje.normalized, out zidHit, kretanje.magnitude + 0.05f, QueryTriggerInteraction.Ignore))
+        {
+            if (JeLiPodloga(zidHit.collider) == false)
+            {
+                kretanje = Vector3.zero;
+            }
+        }
+
         rb.MovePosition(rb.position + kretanje);
 
         if (anim != null)
