@@ -114,23 +114,6 @@ public class UpraviteljIgre : MonoBehaviour
         panelPobjeda.SetActive(true);
     }
 
-    public void OduzmiVrijeme(float sekunde)
-    {
-        if (igraGotova == true)
-        {
-            return;
-        }
-
-        preostaloVrijeme = preostaloVrijeme - sekunde;
-
-        if (preostaloVrijeme < 0)
-        {
-            preostaloVrijeme = 0;
-        }
-
-        AzurirajUI();
-    }
-
     public void Poraz(string razlog)
     {
         if (igraGotova == true)
