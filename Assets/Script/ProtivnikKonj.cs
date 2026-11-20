@@ -8,16 +8,9 @@ public class ProtivnikKonj : MonoBehaviour
     public float skokTrajanje = 0.6f;
     public Color boja = Color.white;
     public AudioSource zvucnik;
-
-    public Vector3[] tocke =
-    {
-        new Vector3(0f, 0.5f, -90f),
-        new Vector3(0f, 0.5f, 92.45f),
-        new Vector3(0f, 11.47f, 133.5f),
-        new Vector3(0f, 11.47f, 232.5f),
-        new Vector3(0f, 0.5f, 273.55f),
-        new Vector3(0f, 0.5f, 305f)
-    };
+    public float pomakZaobilaska = 3f;
+    public float rubStaze = 6f;
+    public Vector3[] tocke;
 
     private Animator anim;
     private int trenutnaTocka = 1;
@@ -25,10 +18,16 @@ public class ProtivnikKonj : MonoBehaviour
     private bool gotov = false;
     private float skokTimer = 0f;
     private Vector3 pozicijaNaStazi;
+    private float pomak = 0f;
+    private float ciljaniPomak = 0f;
+    private float vrijemeZaobilaska = -10f;
+    private ProtivnikKonj[] svi;
+    private bool blokiran = false;
 
     void Start()
     {
         anim = GetComponent<Animator>();
+        svi = FindObjectsByType<ProtivnikKonj>(FindObjectsSortMode.None);
 
         foreach (Renderer r in GetComponentsInChildren<Renderer>())
         {
@@ -74,6 +73,20 @@ public class ProtivnikKonj : MonoBehaviour
             return;
         }
 
+        if (KonjIspred() == true)
+        {
+            PostaviAnimaciju(0f);
+            return;
+        }
+
+        ZaobidjiStijene();
+
+        if (blokiran == true)
+        {
+            PostaviAnimaciju(0f);
+            return;
+        }
+
         Vector3 cilj = Tocka(trenutnaTocka);
         pozicijaNaStazi = Vector3.MoveTowards(pozicijaNaStazi, cilj, brzina * Time.deltaTime);
         OkreniPrema(cilj);
@@ -84,14 +97,12 @@ public class ProtivnikKonj : MonoBehaviour
 
             if (trenutnaTocka >= tocke.Length)
             {
-                gotov = true;
-
-                if (zvucnik != null)
-                {
-                    zvucnik.Stop();
-                }
+                UdjiUStalu();
+                return;
             }
         }
+
+        pomak = Mathf.MoveTowards(pomak, ciljaniPomak, 4f * Time.deltaTime);
 
         if (skokTimer <= 0f && PreprekaIspred() == true)
         {
@@ -107,14 +118,41 @@ public class ProtivnikKonj : MonoBehaviour
             visina = Mathf.Sin(t * Mathf.PI) * skokVisina;
         }
 
-        transform.position = pozicijaNaStazi + Vector3.up * visina;
+        transform.position = TrenutnaPozicija() + Vector3.up * visina;
         PostaviAnimaciju(1.5f);
+    }
+
+    void UdjiUStalu()
+    {
+        gotov = true;
+
+        if (zvucnik != null)
+        {
+            zvucnik.Stop();
+        }
+
+        foreach (Collider c in GetComponentsInChildren<Collider>())
+        {
+            c.enabled = false;
+        }
+
+        PostaviAnimaciju(0f);
+    }
+
+    Vector3 TrenutnaPozicija()
+    {
+        return pozicijaNaStazi + Vector3.right * pomak;
     }
 
     Vector3 Tocka(int i)
     {
         Vector3 p = tocke[i];
-        p.x = traka;
+
+        if (i < tocke.Length - 2)
+        {
+            p.x = traka;
+        }
+
         return p;
     }
 
@@ -129,12 +167,113 @@ public class ProtivnikKonj : MonoBehaviour
         }
     }
 
+    void ZaobidjiStijene()
+    {
+        blokiran = false;
+        RaycastHit hit;
+        Vector3 pocetak = TrenutnaPozicija() + Vector3.up * 1f;
+
+        if (Physics.SphereCast(pocetak, 0.7f, transform.forward, out hit, 8f, ~0, QueryTriggerInteraction.Ignore))
+        {
+            if (JeLiStijena(hit.collider) == true)
+            {
+                if (ciljaniPomak == 0f)
+                {
+                    float prvi = 1f;
+
+                    if (hit.point.x > traka)
+                    {
+                        prvi = -1f;
+                    }
+
+                    if (MozeNa(prvi) == true)
+                    {
+                        ciljaniPomak = prvi * pomakZaobilaska;
+                    }
+                    else if (MozeNa(-prvi) == true)
+                    {
+                        ciljaniPomak = -prvi * pomakZaobilaska;
+                    }
+                    else if (hit.distance < 2.5f)
+                    {
+                        blokiran = true;
+                    }
+                }
+
+                vrijemeZaobilaska = Time.time;
+                return;
+            }
+        }
+
+        if (Time.time - vrijemeZaobilaska > 1.5f)
+        {
+            ciljaniPomak = 0f;
+        }
+    }
+
+    bool MozeNa(float smjer)
+    {
+        float x = traka + smjer * pomakZaobilaska;
+
+        if (Mathf.Abs(x) > rubStaze)
+        {
+            return false;
+        }
+
+        foreach (ProtivnikKonj p in svi)
+        {
+            if (p == this)
+            {
+                continue;
+            }
+
+            Vector3 druga = p.TrenutnaPozicija();
+
+            if (Mathf.Abs(druga.x - x) < 2f && Mathf.Abs(druga.z - pozicijaNaStazi.z) < 8f)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    bool JeLiStijena(Collider c)
+    {
+        string ime = c.gameObject.name.ToLower();
+        return ime.Contains("rock") || ime.Contains("stijen") || ime.Contains("kamen") || ime.Contains("tree") || ime.Contains("stablo");
+    }
+
+    bool KonjIspred()
+    {
+        RaycastHit hit;
+        Vector3 pocetak = TrenutnaPozicija() + Vector3.up * 0.8f;
+
+        if (Physics.Raycast(pocetak, transform.forward, out hit, 2.5f, ~0, QueryTriggerInteraction.Ignore))
+        {
+            if (hit.collider.GetComponentInParent<KonjKretanje>() != null)
+            {
+                return true;
+            }
+
+            ProtivnikKonj drugi = hit.collider.GetComponentInParent<ProtivnikKonj>();
+
+            if (drugi != null && drugi != this)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     bool PreprekaIspred()
     {
         RaycastHit hit;
-        Vector3 pocetak = pozicijaNaStazi + Vector3.up * 0.8f;
+        Vector3 pocetak = TrenutnaPozicija() + Vector3.up * 0.8f;
+        float udaljenost = brzina * skokTrajanje * 0.5f;
 
-        if (Physics.Raycast(pocetak, transform.forward, out hit, 3f, ~0, QueryTriggerInteraction.Ignore))
+        if (Physics.Raycast(pocetak, transform.forward, out hit, udaljenost, ~0, QueryTriggerInteraction.Ignore))
         {
             if (hit.collider.GetComponentInParent<Prepreka>() != null)
             {
