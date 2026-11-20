@@ -240,6 +240,11 @@ public class ProtivnikKonj : MonoBehaviour
 
     bool JeLiStijena(Collider c)
     {
+        if (c.GetComponentInParent<Prepreka>() != null)
+        {
+            return false;
+        }
+
         string ime = c.gameObject.name.ToLower();
         return ime.Contains("rock") || ime.Contains("stijen") || ime.Contains("kamen") || ime.Contains("tree") || ime.Contains("stablo");
     }

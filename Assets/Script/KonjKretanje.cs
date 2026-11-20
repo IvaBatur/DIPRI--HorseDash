@@ -2,10 +2,10 @@ using UnityEngine;
 
 public class KonjKretanje : MonoBehaviour
 {
-    public float brzina = 8f;
-    public float maksimalnaBrzina = 25f;
-    public float ubrzanje = 12f;
-    public float brzinaOkretanja = 60f;
+    public float brzina = 5f;
+    public float maksimalnaBrzina = 15f;
+    public float ubrzanje = 10f;
+    public float brzinaOkretanja = 30f;
     public float silaSkoka = 7f;
 
     [Header("Provjera tla")]
@@ -102,7 +102,7 @@ public class KonjKretanje : MonoBehaviour
         RaycastHit zidHit;
         if (kretanje.sqrMagnitude > 0f && rb.SweepTest(kretanje.normalized, out zidHit, kretanje.magnitude + 0.05f, QueryTriggerInteraction.Ignore))
         {
-            if (JeLiPodloga(zidHit.collider) == false)
+            if (JeLiPodloga(zidHit.collider) == false && zidHit.collider.GetComponentInParent<Prepreka>() == null)
             {
                 kretanje = Vector3.zero;
             }
