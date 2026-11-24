@@ -8,13 +8,8 @@ public class OgradaGenerator : MonoBehaviour
     public bool dodajCollider = true;
     public bool iDesnaStrana = true;
 
-    public Vector3[] tocke =
-    {
-        new Vector3(-7.2f, 0.51f, -100f),
-        new Vector3(-7.2f, 0.51f, 92.45f),
-        new Vector3(-7.2f, 11.47f, 133.5f),
-        new Vector3(-7.2f, 11.47f, 233f)
-    };
+    public Vector3[] tocke;
+    public Vector3[] tockeDesno;
 
     [ContextMenu("Generiraj ogradu")]
     public void Generiraj()
@@ -31,15 +26,29 @@ public class OgradaGenerator : MonoBehaviour
 
         if (mjere.size.z < 0.5f)
         {
-            Debug.LogWarning("Komad ograde je prekratak. Promijeni Dodatna Rotacija Y na 0 ili 90.");
+            Debug.LogWarning("Komad ograde je prekratak: " + mjere.size);
             return;
         }
 
-        PostaviStranu(1f, mjere);
+        PostaviStranu(tocke, mjere);
 
         if (iDesnaStrana == true)
         {
-            PostaviStranu(-1f, mjere);
+            if (tockeDesno != null && tockeDesno.Length > 1)
+            {
+                PostaviStranu(tockeDesno, mjere);
+            }
+            else
+            {
+                Vector3[] zrcalno = new Vector3[tocke.Length];
+
+                for (int i = 0; i < tocke.Length; i++)
+                {
+                    zrcalno[i] = new Vector3(-tocke[i].x, tocke[i].y, tocke[i].z);
+                }
+
+                PostaviStranu(zrcalno, mjere);
+            }
         }
 
 #if UNITY_EDITOR
@@ -77,14 +86,12 @@ public class OgradaGenerator : MonoBehaviour
         return mjere;
     }
 
-    void PostaviStranu(float strana, Bounds mjere)
+    void PostaviStranu(Vector3[] put, Bounds mjere)
     {
-        for (int t = 0; t < tocke.Length - 1; t++)
+        for (int t = 0; t < put.Length - 1; t++)
         {
-            Vector3 a = tocke[t];
-            Vector3 b = tocke[t + 1];
-            a.x = a.x * strana;
-            b.x = b.x * strana;
+            Vector3 a = put[t];
+            Vector3 b = put[t + 1];
 
             Vector3 smjer = b - a;
             float duljina = smjer.magnitude;
@@ -117,7 +124,7 @@ public class OgradaGenerator : MonoBehaviour
 
             if (dodajCollider == true)
             {
-                NapraviZid(a, b, okret, duljina, strana);
+                NapraviZid(a, b, okret, duljina);
             }
         }
     }
@@ -137,13 +144,11 @@ public class OgradaGenerator : MonoBehaviour
         }
     }
 
-    void NapraviZid(Vector3 a, Vector3 b, Quaternion okret, float duljina, float strana)
+    void NapraviZid(Vector3 a, Vector3 b, Quaternion okret, float duljina)
     {
         GameObject zid = new GameObject("NevidljiviZid");
         zid.transform.SetParent(transform);
-
-        Vector3 vani = Vector3.left * strana;
-        zid.transform.position = (a + b) * 0.5f + vani * 0.5f + okret * Vector3.up * 5f;
+        zid.transform.position = (a + b) * 0.5f + okret * Vector3.up * 5f;
         zid.transform.rotation = okret;
 
         BoxCollider bc = zid.AddComponent<BoxCollider>();

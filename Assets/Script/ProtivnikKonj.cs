@@ -141,19 +141,33 @@ public class ProtivnikKonj : MonoBehaviour
 
     Vector3 TrenutnaPozicija()
     {
-        return pozicijaNaStazi + Vector3.right * pomak;
+        return pozicijaNaStazi + transform.right * pomak;
     }
 
     Vector3 Tocka(int i)
     {
         Vector3 p = tocke[i];
 
-        if (i < tocke.Length - 2)
+        if (i >= tocke.Length - 2)
         {
-            p.x = traka;
+            return p;
         }
 
-        return p;
+        Vector3 smjer;
+
+        if (i == 0)
+        {
+            smjer = tocke[1] - tocke[0];
+        }
+        else
+        {
+            smjer = (tocke[i] - tocke[i - 1]).normalized + (tocke[i + 1] - tocke[i]).normalized;
+        }
+
+        smjer.y = 0f;
+        Vector3 desno = Vector3.Cross(Vector3.up, smjer).normalized;
+
+        return p + desno * traka;
     }
 
     void OkreniPrema(Vector3 cilj)
@@ -181,7 +195,7 @@ public class ProtivnikKonj : MonoBehaviour
                 {
                     float prvi = 1f;
 
-                    if (hit.point.x > traka)
+                    if (transform.InverseTransformPoint(hit.point).x > 0f)
                     {
                         prvi = -1f;
                     }
@@ -227,9 +241,9 @@ public class ProtivnikKonj : MonoBehaviour
                 continue;
             }
 
-            Vector3 druga = p.TrenutnaPozicija();
+            float drugaTraka = p.traka + p.ciljaniPomak;
 
-            if (Mathf.Abs(druga.x - x) < 2f && Mathf.Abs(druga.z - pozicijaNaStazi.z) < 8f)
+            if (Mathf.Abs(drugaTraka - x) < 2f && Vector3.Distance(p.pozicijaNaStazi, pozicijaNaStazi) < 8f)
             {
                 return false;
             }
