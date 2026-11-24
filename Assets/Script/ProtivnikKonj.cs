@@ -102,7 +102,7 @@ public class ProtivnikKonj : MonoBehaviour
             }
         }
 
-        pomak = Mathf.MoveTowards(pomak, ciljaniPomak, 4f * Time.deltaTime);
+        pomak = Mathf.MoveTowards(pomak, ciljaniPomak, 6f * Time.deltaTime);
 
         if (skokTimer <= 0f && PreprekaIspred() == true)
         {
@@ -187,7 +187,7 @@ public class ProtivnikKonj : MonoBehaviour
         RaycastHit hit;
         Vector3 pocetak = TrenutnaPozicija() + Vector3.up * 1f;
 
-        if (Physics.SphereCast(pocetak, 0.7f, transform.forward, out hit, 8f, ~0, QueryTriggerInteraction.Ignore))
+        if (Physics.SphereCast(pocetak, 0.7f, transform.forward, out hit, 14f, ~0, QueryTriggerInteraction.Ignore))
         {
             if (JeLiStijena(hit.collider) == true)
             {
