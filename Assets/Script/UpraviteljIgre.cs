@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 using TMPro;
 
 public class UpraviteljIgre : MonoBehaviour
@@ -14,6 +15,10 @@ public class UpraviteljIgre : MonoBehaviour
     public TextMeshProUGUI tekstVremena;
     public TextMeshProUGUI tekstMrkvi;
     public TextMeshProUGUI tekstPoraza;
+    public TextMeshProUGUI tekstPobjede;
+
+    public Image medalja;
+    public TextMeshProUGUI tekstMedalje;
 
     public GameObject panelPobjeda;
     public GameObject panelPoraz;
@@ -36,6 +41,11 @@ public class UpraviteljIgre : MonoBehaviour
 
     void Start()
     {
+        if (konj == null)
+        {
+            konj = FindFirstObjectByType<KonjKretanje>();
+        }
+
         Time.timeScale = 1f;
         preostaloVrijeme = vremenskoOgranicenje;
 
@@ -108,10 +118,175 @@ public class UpraviteljIgre : MonoBehaviour
             PlayerPrefs.SetInt("OtkljucanaRazina", sljedeciLevel);
         }
 
+        SpremiRezultat();
+
         igraGotova = true;
         ZaustaviIgru();
         PustiZvuk(zvukPobjede);
         panelPobjeda.SetActive(true);
+    }
+
+    void SpremiRezultat()
+    {
+        int razina = SceneManager.GetActiveScene().buildIndex;
+        float vrijeme = vremenskoOgranicenje - preostaloVrijeme;
+
+        int mjesto = UpisiNaPopis("Razina" + razina + "_", 3, vrijeme);
+        PlayerPrefs.SetFloat("Turnir_" + razina, vrijeme);
+        PlayerPrefs.SetInt("TurnirMedalja_" + razina, mjesto);
+
+        PrikaziMedalju(mjesto);
+
+        string tekst = "Vrijeme: " + FormatVremena(vrijeme);
+        tekst = tekst + "\nNajbolje: " + FormatVremena(PlayerPrefs.GetFloat("Razina" + razina + "_0"));
+
+        if (razina == SceneManager.sceneCountInBuildSettings - 1)
+        {
+            tekst = tekst + TekstTurnira(razina);
+        }
+
+        if (tekstPobjede != null)
+        {
+            tekstPobjede.text = tekst;
+        }
+
+        PlayerPrefs.Save();
+    }
+
+    int UpisiNaPopis(string kljuc, int broj, float vrijeme)
+    {
+        float[] popis = new float[broj];
+
+        for (int i = 0; i < broj; i++)
+        {
+            popis[i] = PlayerPrefs.GetFloat(kljuc + i, 0f);
+        }
+
+        int mjesto = -1;
+
+        for (int i = 0; i < broj; i++)
+        {
+            if (popis[i] <= 0f || vrijeme < popis[i])
+            {
+                mjesto = i;
+                break;
+            }
+        }
+
+        if (mjesto == -1)
+        {
+            return -1;
+        }
+
+        for (int i = broj - 1; i > mjesto; i--)
+        {
+            popis[i] = popis[i - 1];
+        }
+
+        popis[mjesto] = vrijeme;
+
+        for (int i = 0; i < broj; i++)
+        {
+            PlayerPrefs.SetFloat(kljuc + i, popis[i]);
+        }
+
+        return mjesto;
+    }
+
+    void PrikaziMedalju(int mjesto)
+    {
+        if (medalja == null)
+        {
+            return;
+        }
+
+        if (mjesto == -1)
+        {
+            medalja.gameObject.SetActive(false);
+            return;
+        }
+
+        medalja.gameObject.SetActive(true);
+
+        Color[] boje =
+        {
+            new Color(0.95f, 0.76f, 0.19f),
+            new Color(0.8f, 0.8f, 0.82f),
+            new Color(0.8f, 0.5f, 0.2f)
+        };
+
+        medalja.color = boje[mjesto];
+
+        if (tekstMedalje != null)
+        {
+            tekstMedalje.text = (mjesto + 1).ToString();
+        }
+    }
+
+    string TekstTurnira(int razina)
+    {
+        float ukupno = 0f;
+        int zlato = 0;
+        int srebro = 0;
+        int bronca = 0;
+
+        for (int i = 1; i <= razina; i++)
+        {
+            ukupno = ukupno + PlayerPrefs.GetFloat("Turnir_" + i, 0f);
+            int m = PlayerPrefs.GetInt("TurnirMedalja_" + i, -1);
+
+            if (m == 0)
+            {
+                zlato = zlato + 1;
+            }
+            else if (m == 1)
+            {
+                srebro = srebro + 1;
+            }
+            else if (m == 2)
+            {
+                bronca = bronca + 1;
+            }
+        }
+
+        int mjesto = UpisiNaPopis("Ljestvica_", 5, ukupno);
+
+        string t = "\n\nPOBJEDA NA TURNIRU!";
+        t = t + "\nUkupno vrijeme: " + FormatVremena(ukupno);
+        t = t + "\nZlato: " + zlato + "   Srebro: " + srebro + "   Bronca: " + bronca;
+        t = t + "\n\nLJESTVICA";
+
+        for (int i = 0; i < 5; i++)
+        {
+            float v = PlayerPrefs.GetFloat("Ljestvica_" + i, 0f);
+
+            if (v <= 0f)
+            {
+                continue;
+            }
+
+            t = t + "\n" + (i + 1) + ".  " + FormatVremena(v);
+
+            if (i == mjesto)
+            {
+                t = t + "  <- novo";
+            }
+        }
+
+        return t;
+    }
+
+    public static string FormatVremena(float sekunde)
+    {
+        int min = (int)(sekunde / 60);
+        int sek = (int)(sekunde % 60);
+
+        if (sek < 10)
+        {
+            return min + ":0" + sek;
+        }
+
+        return min + ":" + sek;
     }
 
     public void Poraz(string razlog)
@@ -161,17 +336,7 @@ public class UpraviteljIgre : MonoBehaviour
     void AzurirajUI()
     {
         tekstMrkvi.text = "Mrkve: " + skupljenoMrkvi + " / " + minimalnoMrkvi;
-
-        int minute = (int)(preostaloVrijeme / 60);
-        int sekunde = (int)(preostaloVrijeme % 60);
-
-        string tekstSekundi = sekunde.ToString();
-        if (sekunde < 10)
-        {
-            tekstSekundi = "0" + sekunde;
-        }
-
-        tekstVremena.text = "Vrijeme: " + minute + ":" + tekstSekundi;
+        tekstVremena.text = "Vrijeme: " + FormatVremena(preostaloVrijeme);
 
         if (preostaloVrijeme <= 10)
         {
